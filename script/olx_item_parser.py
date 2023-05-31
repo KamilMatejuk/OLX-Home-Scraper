@@ -1,5 +1,3 @@
-from genericpath import exists
-import re
 import locale
 import datetime
 from typing import List
@@ -22,12 +20,13 @@ class OlxItemParser(ItemParser):
     @SeleniumConnector.with_selenium()
     def parse(self, browser) -> List[str]:
         self.browser = browser
-        self.has_img = self.check_img()
-        self.parse_price()
-        self.parse_date()
-        self.parse_location()
-        self.parse_highlighted_options()
-        self.parse_text()
+        # self.has_img = self.check_img()
+        # self.parse_price()
+        # self.parse_date()
+        # self.parse_location()
+        # self.parse_highlighted_options()
+        # self.parse_text()
+        self.parse_all_content()
         readwrite.save_item(self.item)
     
     def check_img(self) -> bool:
@@ -37,6 +36,14 @@ class OlxItemParser(ItemParser):
             return True
         except: return False
     
+    def parse_all_content(self):
+        xpath = f'//*[@id="mainContent"]/div[3]/div[3]/div[1]/div[2]'
+        element = utils.get_soup_by_xpath(self.browser, xpath)[0]
+        children_with_text = element.find_all(text=True)
+        print(len(children_with_text))
+        print(children_with_text)
+        self.item['whole_text'] = text_csv
+
     def parse_price(self) -> None:
         div_nr = 2 if self.has_img else 1
         xpath = f'//*[@id="root"]/div[1]/div[3]/div[3]/div[1]/div[{div_nr}]/div[3]/h3'
@@ -87,7 +94,6 @@ class OlxItemParser(ItemParser):
         xpath = f'//*[@id="root"]/div[1]/div[3]/div[3]/div[1]/div[{div_nr}]/div[8]/div'
         text = utils.get_soup_by_xpath(self.browser, xpath)[0].text
         text_csv = text.replace('\n', ' ')
-        self.item['whole_text'] = text_csv
         self.item['location'] = self.deduce_value(text, rf'(ul[{const.REGEX_POLISH_AZ}.]+) ([{const.REGEX_POLISH_AZ} ]+ [0-9]+)', 2)
         self.item['shower'] = self.deduce_bool(text, rf'przysznic[{const.REGEX_POLISH_AZ}]+')
         self.item['bath'] = self.deduce_bool(text, rf'wann[{const.REGEX_POLISH_AZ}]+')
