@@ -7,6 +7,11 @@ from connection.connection import SeleniumConnector
 
 
 class ItemParser(SeleniumConnector):
+    
+    def __init__(self, url) -> None:
+        super().__init__(url)
+        self.item = { 'link': url }
+
     def deduce_value(self, text, regex, index):
         if match := re.search(regex, text, re.IGNORECASE):
             return match.group(index)

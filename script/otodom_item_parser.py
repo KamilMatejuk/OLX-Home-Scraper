@@ -1,4 +1,5 @@
 import re
+import time
 import datetime
 from typing import List
 
@@ -13,49 +14,52 @@ from connection.connection import SeleniumConnector
 
 class OtodomItemParser(ItemParser):
     
-    def __init__(self, url) -> None:
-        super().__init__(url)
-        self.item = { 'link': url }
-    
     @SeleniumConnector.with_selenium()
     def parse(self, browser) -> List[str]:
         self.browser = browser
         if 'from404' in self.browser.current_url:
             print(f'\tError: \t 404 redirection')
             return
+        self.close_popup()
         self.parse_price()
         self.parse_date()
         self.parse_location()
         self.parse_highlighted_options()
-        self.parse_text()
+        # self.parse_text()
+        self.parse_phone()
+        self.parse_all_content()
         readwrite.save_item(self.item)
     
+    def close_popup(self):
+        xpath = '//*[@id="onetrust-accept-btn-handler"]'
+        utils.click_button_by_xpath(self.browser, xpath)
+    
     def parse_price(self) -> None:
-        xpath = '//*[@id="__next"]/main/div[3]/div[2]/header/strong'
+        xpath = '/html/body/div[1]/main/div[3]/div[2]/header/strong'
         price = utils.get_soup_by_xpath(self.browser, xpath)[0].text
         price = float(price.replace('zł', '').replace(' ', '').replace(',', '.'))
         self.item['price_base'] = price
     
     def parse_date(self) -> None:
-        xpath = '//*[@id="__next"]/main/div[3]/div[2]/div[5]/div[4]'
+        xpath = '/html/body/div[1]/main/div[3]/div[2]/div[6]/div[3]'
         date = utils.get_soup_by_xpath(self.browser, xpath)[0].text
-        if s := re.search(r'Data aktualizacji: ([0-9]+) (dni|dzień) temu', date):
+        if s := re.search(r'Data dodania: *([0-9]+) (dni|dzień) temu', date):
             date = datetime.datetime.now() - datetime.timedelta(days=int(s.group(1)))
             self.item['date'] = datetime.datetime.strftime(date, '%d.%m.%Y')
             return
-        if s := re.search(rf'Data aktualizacji: ([0-9]+) godzin[{const.REGEX_POLISH_AZ}]* temu', date):
+        if s := re.search(rf'Data dodania: *([0-9]+) godzin[{const.REGEX_POLISH_AZ}]* temu', date):
             date = datetime.datetime.now() - datetime.timedelta(hours=int(s.group(1)))
             self.item['date'] = datetime.datetime.strftime(date, '%d.%m.%Y')
             return
-        else: print('Data aktualizacji nie w dniach !!!!!!!!!!!!!!')
+        else: print('Data dodania nie w dniach !!!!!!!!!!!!!!')
     
     def parse_location(self) -> None:
-        xpath = '//*[@id="__next"]/main/div[3]/div[2]/header/div/a'
+        xpath = '/html/body/div[1]/main/div[3]/div[2]/header/div/a'
         location = utils.get_soup_by_xpath(self.browser, xpath)[0].text
-        self.item['location_approximation'] = location.split(',')[-1].strip()
+        self.item['location_approximation'] = location.split(',')[0].strip()
     
     def parse_highlighted_options(self) -> None:
-        xpath = '//*[@id="__next"]/main/div[3]/div[2]/div[1]/div'
+        xpath = '/html/body/div[1]/main/div[3]/div[2]/div[1]/div'
         options_div = utils.get_soup_by_xpath(self.browser, xpath)[0]
         options = {}
         for div in options_div.findChildren('div', recursive=False):
@@ -64,15 +68,16 @@ class OtodomItemParser(ItemParser):
             value = divs[-1].text
             options[key] = value if value != 'Zapytaj' else ''
         
-        try: self.item['area'] = float(options['Powierzchnia'].replace('m²', '').replace(',', '.').strip())
+        get_digits = lambda x: re.sub(r'[^0-9,\.]', '', x).replace(',', '.').strip()
+        try: self.item['area'] = float(get_digits(options['Powierzchnia']))
         except: pass
-        try: self.item['price_additional'] = float(options['Czynsz'].replace('zł', '').replace(',', '.').strip())
+        try: self.item['price_additional'] = float(get_digits(options['Czynsz']))
         except: pass
-        try: self.item['rooms'] = int(options['Liczba pokoi'].strip())
+        try: self.item['rooms'] = int(get_digits(options['Liczba pokoi']))
         except: pass
-        try: self.item['deposit'] = float(options['Kaucja'].replace('zł', '').replace(',', '.').strip())
+        try: self.item['deposit'] = float(get_digits(options['Kaucja']))
         except: pass
-        try: self.item['level'] = int(options['Piętro'].strip().split('/')[0])
+        try: self.item['level'] = int(get_digits(options['Piętro'].strip().split('/')[0]))
         except: pass
         try: self.item['build_type'] = options['Rodzaj zabudowy'].strip()
         except: pass
@@ -81,21 +86,34 @@ class OtodomItemParser(ItemParser):
         try: self.item['furniture'] = (options['Stan wykończenia'].strip() == 'do zamieszkania')
         except: pass
 
-    def parse_text(self) -> None:
-        xpath = '//*[@id="__next"]/main/div[3]/div[2]/div[3]/div/div[3]/div[2]/div'
-        appliances = utils.get_soup_by_xpath(self.browser, xpath)[0].text
-        xpath = '//*[@id="__next"]/main/div[3]/div[2]/section[2]/div/div/div'
-        text = utils.get_soup_by_xpath(self.browser, xpath)[0].text
-        text += f'\nWypozażenie: {appliances}.'
-        text_csv = text.replace('\n', ' ')
-    
-        self.item['whole_text'] = text_csv
-        self.item['location'] = self.deduce_value(text, rf'(ul[{const.REGEX_POLISH_AZ}.]+) ([{const.REGEX_POLISH_AZ} ]+ [0-9]+)', 2)
-        self.item['shower'] = self.deduce_bool(text, rf'przysznic[{const.REGEX_POLISH_AZ}]+')
-        self.item['bath'] = self.deduce_bool(text, rf'wann[{const.REGEX_POLISH_AZ}]+')
-        self.item['balcony'] = self.deduce_bool(text, rf'balkon[{const.REGEX_POLISH_AZ}]+')
-        self.item['dishwasher'] = self.deduce_bool(text, rf'zmywark[{const.REGEX_POLISH_AZ}]+')
-        self.item['induction_stove'] = self.deduce_bool(text, rf'indukc[{const.REGEX_POLISH_AZ}]+')
-        self.item['animals'] = self.deduce_surrounding_text(text, rf'zwierz[{const.REGEX_POLISH_AZ}]+', 30)
-        self.item['deposit'] = self.deduce_deposit(text)
+    def parse_phone(self):
+        xpath = '/html/body/div[1]/main/div[3]/aside/div/div[1]/div/div/div[3]/div/button'
+        utils.click_button_by_xpath(self.browser, xpath)
+        time.sleep(5) # required
+        xpath = '/html/body/div[1]/main/div[3]/aside/div/div[1]/div/div/div[3]/div/a'
+        phone = utils.get_soup_by_xpath(self.browser, xpath)[0].text
+        self.item['phone'] = phone.replace(' ', '')
+
+    # def parse_text(self) -> None:
+    #     xpath = '/html/body/div[1]/main/div[3]/div[2]/section[2]/div/div/div'
+    #     element = utils.get_soup_by_xpath(self.browser, xpath)[0]
+    #     children_with_text = element.find_all(text=True)
+    #     text = '. '.join([c for c in children_with_text if len(c) > 1])    
+    #     self.item['location'] = self.deduce_value(text, rf'(ul[{const.REGEX_POLISH_AZ}.]*)([{const.REGEX_POLISH_AZ}0-9 ]+)', 2)
+    #     self.item['shower'] = self.deduce_bool(text, rf'przysznic[{const.REGEX_POLISH_AZ}]+')
+    #     self.item['bath'] = self.deduce_bool(text, rf'wann[{const.REGEX_POLISH_AZ}]+')
+    #     self.item['balcony'] = self.deduce_bool(text, rf'balkon[{const.REGEX_POLISH_AZ}]+')
+    #     self.item['dishwasher'] = self.deduce_bool(text, rf'zmywark[{const.REGEX_POLISH_AZ}]+')
+    #     self.item['induction_stove'] = self.deduce_bool(text, rf'indukc[{const.REGEX_POLISH_AZ}]+')
+    #     self.item['animals'] = self.deduce_surrounding_text(text, rf'zwierz[{const.REGEX_POLISH_AZ}]+', 30)
         
+    def parse_all_content(self):
+        children_with_text = []
+        xpath = '/html/body/div[1]/main/div[3]/div[2]/div[1]'
+        element = utils.get_soup_by_xpath(self.browser, xpath)[0]
+        children_with_text += element.find_all(text=True)
+        xpath = '/html/body/div[1]/main/div[3]/div[2]/section[2]/div/div/div'
+        element = utils.get_soup_by_xpath(self.browser, xpath)[0]
+        children_with_text += element.find_all(text=True)
+        not_allowed = ['Szczegóły ogłoszenia']
+        self.item['whole_text'] = '. '.join([c for c in children_with_text if len(c) > 1 and all([na not in c for na in not_allowed])])

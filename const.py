@@ -7,8 +7,8 @@ REGEX_POLISH_AZ = r'AaĄąBbCcĆćDdEeĘęFfGgHhIiJjKkLlŁłMmNnŃńOoÓóPpRrSs
 LINKS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'links.csv')
 ITEMS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'items.csv')
 ITEMS_HEADERS = ['link', 'date', 'build_type', 'rooms', 'level', 'furniture', 'area',
-                 'price_base', 'price_additional', 'location_approximation',
-                 'location', 'animals', 'shower', 'bath', 'balcony', 'dishwasher', 'induction_stove', 'deposit', # deduced from text
+                 'price_base', 'price_additional', 'location_approximation', 'phone',
+                #  'location', 'animals', 'shower', 'bath', 'balcony', 'dishwasher', 'induction_stove', 'deposit', # deduced from text
                  'whole_text']
 
 # logs
@@ -18,7 +18,7 @@ LOG_OUTPUT = True
 # selenium
 SELENIUM_PROXY = False
 SELENIUM_HEADLESS = False
-SELENIUM_CHROMEDRIVER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'connection', 'chromedriver_108.0.5359.71')
+SELENIUM_CHROMEDRIVER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'connection', 'chromedriver')
 os.chmod(SELENIUM_CHROMEDRIVER, 755)
 
 # workload
@@ -29,7 +29,7 @@ class Workload(Enum):
     CLEAN_UP_ITEMS_LIST = 4
     DEDUCE_DETAILS = 5 # animals, distances based on location
     FILTER_RESULTS = 6
-TYPE = Workload.CLEAN_UP_ITEMS_LIST
+TYPE = Workload.CREATE_ITEMS_CVS
 
 # links
 import linker_olx

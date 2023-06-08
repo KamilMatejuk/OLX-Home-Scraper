@@ -39,8 +39,8 @@ def save_items(items: List[dict]) -> None:
         writer.writerows(items)
 
 def save_item(item: dict) -> None:
-    if not os.path.exists(const.ITEMS_FILE):
-        with open(const.ITEMS_FILE, 'w+') as f:
+    with open(const.ITEMS_FILE, 'r+') as f:
+        if len(f.readlines()) == 0:
             writer = csv.DictWriter(f, delimiter=',', fieldnames=const.ITEMS_HEADERS)
             writer.writeheader()
     with open(const.ITEMS_FILE, 'a') as f:
@@ -48,4 +48,5 @@ def save_item(item: dict) -> None:
         for key in item:
             if isinstance(item[key], str):
                 item[key] = item[key].replace('\n', '').strip()
+        item = {k: v for k, v in item.items() if k in const.ITEMS_HEADERS}
         writer.writerow(item)

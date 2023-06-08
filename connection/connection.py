@@ -1,3 +1,4 @@
+import traceback
 from typing import Generator
 from requests.exceptions import ConnectionError
 from urllib3.exceptions import MaxRetryError, NewConnectionError
@@ -10,7 +11,6 @@ from selenium.webdriver.support import expected_conditions as EC
 import sys
 sys.path.append("..")
 import const
-import logger
 
     
 def get_proxys() -> Generator:
@@ -39,8 +39,10 @@ class SeleniumConnector():
                 options = webdriver.ChromeOptions()
 
                 proxy = next(PROXYS) if const.SELENIUM_PROXY else None
+                error_str = '\tError: '
                 if proxy is not None:
                     options.add_argument(f'--proxy-server={proxy}')
+                    error_str = f'\tError {proxy}: '
 
                 if const.SELENIUM_HEADLESS:
                     options.add_argument('--headless')
@@ -61,15 +63,20 @@ class SeleniumConnector():
                             return None
                         return func(self, browser)
 
-                except TimeoutException:
-                    print(f'\tError: \t{proxy} \t"Too long waiting time"')
+                except TimeoutException as e:
+                    print(f'{error_str} \t"Too long waiting time" ({e})')
                     return None
-                except WebDriverException:
-                    print(f'\tError: \t{proxy} \t"WebDriverException"')
+                except WebDriverException as e:
+                    print(f'{error_str} \t"WebDriverException" ({e})')
                     return None
-                except (ConnectionError, MaxRetryError, NewConnectionError):
-                    print(f'\tError: \t{proxy} \t"Too many requests"')
+                except (ConnectionError, MaxRetryError, NewConnectionError) as e:
+                    print(f'{error_str} \t"Too many requests" ({e})')
                     return None
+                # except Exception as e:
+                #     print(f'\tError: "{e}"')
+                #     traceback.print_exc()
+                #     print(self.item)
+                #     return None
                 except KeyboardInterrupt:
                     print()
                     exit(1)

@@ -14,12 +14,17 @@ def _get_soup_by(browser, type, value, timeout):
             type, value)
         )
     )
-    return [BeautifulSoup(e.get_attribute('innerHTML'), 'html.parser')
-            for e in elements]
-
+    return elements
+    
 def get_soup_by_xpath(browser, xpath, timeout=30):
-    return _get_soup_by(browser, By.XPATH, xpath, timeout)
-
+    return [BeautifulSoup(e.get_attribute('innerHTML'), 'html.parser')
+            for e in _get_soup_by(browser, By.XPATH, xpath, timeout)]
 
 def get_soup_by_css_selector(browser, selector, timeout=30):
-    return _get_soup_by(browser, By.CSS_SELECTOR, selector, timeout)
+    return [BeautifulSoup(e.get_attribute('innerHTML'), 'html.parser')
+            for e in _get_soup_by(browser, By.CSS_SELECTOR, selector, timeout)]
+
+def click_button_by_xpath(browser, xpath, timeout=30):
+    button = _get_soup_by(browser, By.XPATH, xpath, timeout)[0]
+    return button.click()
+    
