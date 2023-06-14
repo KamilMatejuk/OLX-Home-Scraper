@@ -30,7 +30,7 @@ def get_items() -> List[dict]:
     with open(const.ITEMS_FILE, 'r') as f:
         for row in csv.DictReader(f, delimiter=',', fieldnames=const.ITEMS_HEADERS):
             items.append(row)
-    return items
+    return items[1:]
 
 def save_items(items: List[dict]) -> None:
     with open(const.ITEMS_FILE, 'w+') as f:

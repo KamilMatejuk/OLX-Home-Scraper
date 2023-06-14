@@ -4,6 +4,7 @@ import readwrite
 from script.olx_list_parser import OlxListParser
 from script.olx_item_parser import OlxItemParser
 from script.otodom_item_parser import OtodomItemParser
+from script.deducer import Deducer
 
 
 if __name__ == '__main__':
@@ -60,6 +61,16 @@ if __name__ == '__main__':
     
     if const.TYPE == const.Workload.DEDUCE_DETAILS:
         items = readwrite.get_items()
+        items_new = []
+        deducer = Deducer()
         for i in items:
-            print(i['location'])
+            i = deducer.deduce_regex(i)
+            
+            # i = deducer.deduce_gpt3(i)
+            # i = deducer.deduce_gpt2(i) # max sequence 1024 chars
+            # i = deducer.deduce_llama_decapoda(i)
+            # i = deducer.deduce_llama_vmware(i) # max recursion depth reached when tokenizing
+            # i = deducer.deduce_bert_multilingual(i) # a bit nonsense
+            items_new.append(i)
+        readwrite.save_items(items)
         exit()

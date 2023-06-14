@@ -6,10 +6,12 @@ REGEX_POLISH_AZ = r'AaĄąBbCcĆćDdEeĘęFfGgHhIiJjKkLlŁłMmNnŃńOoÓóPpRrSs
 # results
 LINKS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'links.csv')
 ITEMS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'items.csv')
+deduced_headers = ['location', 'animals', 'shower', 'bath', 'balcony', 'dishwasher', 'induction_stove', 'deposit']
 ITEMS_HEADERS = ['link', 'date', 'build_type', 'rooms', 'level', 'furniture', 'area',
-                 'price_base', 'price_additional', 'location_approximation', 'phone',
-                #  'location', 'animals', 'shower', 'bath', 'balcony', 'dishwasher', 'induction_stove', 'deposit', # deduced from text
-                 'whole_text']
+                 'price_base', 'price_additional', 'location_approximation', 'phone', 'whole_text' ] +\
+                [f'deduced_regex_{name}' for name in deduced_headers] +\
+                [f'deduced_gpt_{name}' for name in deduced_headers] +\
+                [f'deduced_gpt_certainty_{name}' for name in deduced_headers]
 
 # logs
 LOG_FILE = None
@@ -27,7 +29,7 @@ class Workload(Enum):
     CLEAN_UP_LINKS_LIST = 2
     CREATE_ITEMS_CVS = 3
     CLEAN_UP_ITEMS_LIST = 4
-    DEDUCE_DETAILS = 5 # animals, distances based on location
+    DEDUCE_DETAILS = 5
     FILTER_RESULTS = 6
 TYPE = Workload.CREATE_ITEMS_CVS
 

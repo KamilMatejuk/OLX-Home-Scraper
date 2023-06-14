@@ -23,7 +23,6 @@ class OlxItemParser(ItemParser):
         self.parse_date()
         self.parse_location()
         self.parse_highlighted_options()
-        # self.parse_text()
         self.parse_phone()
         self.parse_all_content()
         readwrite.save_item(self.item)
@@ -81,18 +80,6 @@ class OlxItemParser(ItemParser):
                 try: self.item[header] = f(self.item[header])
                 except: pass
     
-    # def parse_text(self):
-    #     xpath = f'{self.container_xpath}/div[8]/div'
-    #     text = utils.get_soup_by_xpath(self.browser, xpath)[0].text
-    #     self.item['location'] = self.deduce_value(text, rf'(ul[{const.REGEX_POLISH_AZ}.]*)([{const.REGEX_POLISH_AZ}0-9 ]+)', 2)
-    #     self.item['shower'] = self.deduce_bool(text, rf'przysznic[{const.REGEX_POLISH_AZ}]+')
-    #     self.item['bath'] = self.deduce_bool(text, rf'wann[{const.REGEX_POLISH_AZ}]+')
-    #     self.item['balcony'] = self.deduce_bool(text, rf'balkon[{const.REGEX_POLISH_AZ}]+')
-    #     self.item['dishwasher'] = self.deduce_bool(text, rf'zmywark[{const.REGEX_POLISH_AZ}]+')
-    #     self.item['induction_stove'] = self.deduce_bool(text, rf'indukc[{const.REGEX_POLISH_AZ}]+')
-    #     self.item['animals'] = self.deduce_surrounding_text(text, rf'zwierz[{const.REGEX_POLISH_AZ}]+', 30)
-    #     self.item['deposit'] = self.deduce_deposit(text)
-
     def parse_phone(self):
         xpath = '/html/body/div[1]/div[2]/div[3]/div[3]/div[2]/div[1]/div[3]/div/button[1]'
         utils.click_button_by_xpath(self.browser, xpath)
